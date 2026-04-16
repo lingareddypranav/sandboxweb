@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>sandbox — [0415]</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    width: 100%; min-height: 100%;
+    background: #e2d9cc;
+  }
+
+  body {
+    position: relative;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .bg-sand {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 100%; min-height: 100%;
+    width: 150%; height: auto;
+    z-index: 0;
+    pointer-events: none;
+    object-fit: cover;
+  }
+
+  .layout {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Left sidebar: scrollable date column */
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: 140px;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 5vh 0 5vh 2.5vw;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2em;
+  }
+
+  .sidebar a {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 300;
+    font-size: clamp(12px, 1.3vw, 15px);
+    color: #a8a8a8;
+    letter-spacing: -0.06em;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  .sidebar a:hover { color: #5a5a5a; }
+  .sidebar a.active { color: #606060; font-weight: 400; }
+
+  /* Main content area */
+  .content {
+    margin-left: 140px;
+    flex: 1;
+    max-width: 660px;
+    padding: 5vh 6vw 12vh 4vw;
+  }
+
+  .back {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 300;
+    font-size: clamp(11px, 1.1vw, 13px);
+    color: #a0a0a0;
+    text-decoration: none;
+    letter-spacing: -0.03em;
+    margin-bottom: 5vh;
+    transition: opacity 0.2s ease;
+  }
+  .back:hover { opacity: 0.5; }
+
+  .meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    font-size: clamp(13px, 1.4vw, 16px);
+    color: #6a6460;
+    letter-spacing: -0.03em;
+    margin-bottom: 4vh;
+  }
+
+  .writing h2 {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-weight: 500;
+    font-size: clamp(24px, 3.2vw, 34px);
+    color: #332e28;
+    letter-spacing: -0.035em;
+    line-height: 1.25;
+    margin-bottom: 3.5vh;
+  }
+
+  .writing p {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-weight: 300;
+    font-size: clamp(15px, 1.5vw, 17px);
+    color: #4a4540;
+    line-height: 1.8;
+    margin-bottom: 1.8em;
+  }
+
+  .writing p:last-child { margin-bottom: 0; }
+
+  .divider {
+    width: 40px;
+    height: 1px;
+    background: #b5ada3;
+    margin: 4vh 0;
+  }
+
+  @media (max-width: 700px) {
+    .sidebar {
+      position: relative;
+      width: 100%;
+      height: auto;
+      flex-direction: row;
+      padding: 3vh 5vw 2vh;
+      gap: 1.5em;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+    .content {
+      margin-left: 0;
+      padding: 2vh 5vw 10vh;
+    }
+    .layout { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<img class="bg-sand" src="sand-bg.png" alt="">
+
+<div class="layout">
+  <nav class="sidebar">
+    <a href="0415.html" class="active">[0415]</a>
+  </nav>
+
+  <main class="content">
+    <a href="index.html" class="back">← back</a>
+
+    <div class="meta">april 15, 2026 · meeting #1</div>
+
+    <div class="writing">
+      <h2>On the nature of things that haven't happened yet</h2>
+
+      <p>There's a particular kind of conversation that only happens when you put people in a room who have no business being in the same room. The roboticist and the typeface designer. The policy analyst and the person who just shipped an agent framework over a weekend. The conversations that emerge aren't debates — they're more like weather patterns forming in real time.</p>
+
+      <p>We started with a question that felt almost too simple: what's an interesting thing you've seen recently, and what does it mean for how things are done today? No slides. No agenda beyond the impulse to think out loud together. The constraint was deliberate — a first meeting should be light enough to breathe.</p>
+
+      <div class="divider"></div>
+
+      <p>The robotics thread surfaced something worth sitting with. The "18 months away" joke has been running for a decade, but the punchline might finally be landing. World models are starting to work. Not in the demo-video sense — in the sense that you can point at an industry and ask which parts look completely different if this actually ships. The answers are unsettling in the way that means they're probably right.</p>
+
+      <p>Post-training is where the real product story lives right now. Not the research, not the benchmarks — the question of who's actually building things that work in the morning when nobody's watching. Agent harnesses are becoming either the moat or the commodity. We couldn't agree on which. That felt like progress.</p>
+
+      <div class="divider"></div>
+
+      <p>On the design side, someone asked what the most broken AI interface is that everyone uses regularly. The room went quiet in the way that rooms go quiet when the answer is obvious and nobody wants to say it. The chat box. The universal, lowest-common-denominator, please-just-type-your-intent-into-this-rectangle chat box. Whether it's dying or just growing up became the argument that carried us through the second half.</p>
+
+      <p>The deeper question underneath: when an agent acts on your behalf, what's the minimum amount of information you need to feel like you're still in control? Nobody had a clean answer. The honest ones admitted they weren't sure they wanted control — they wanted trust, which is different, and harder to design for.</p>
+
+      <div class="divider"></div>
+
+      <p>We didn't get to everything. The DNC banning Claude and ChatGPT. The TBPN acquisition. Whether "marketing is getting masculinized" is a structural shift or noise. These are threads, not conclusions. The point of the first meeting was to find out what we'd argue about. Now we know.</p>
+
+      <p>Next time we'll pull harder.</p>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

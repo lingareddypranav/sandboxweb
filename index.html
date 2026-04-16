@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>sandbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #e2d9cc;
+  }
+
+  body { position: relative; }
+
+  .bg-sand {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 100%; min-height: 100%;
+    width: 150%; height: auto;
+    z-index: 0;
+    pointer-events: none;
+    object-fit: cover;
+  }
+
+  canvas#ascii {
+    position: fixed;
+    inset: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    mix-blend-mode: multiply;
+    opacity: 0.88;
+    pointer-events: none;
+  }
+
+  .text-sandbox {
+    position: fixed;
+    bottom: -0.06em;
+    right: -0.01em;
+    z-index: 3;
+    font-family: 'Inter', 'Helvetica Neue', -apple-system, sans-serif;
+    font-weight: 400;
+    font-size: min(31.2vw, 31.2vh);
+    letter-spacing: -0.05em;
+    color: #b6b6b6;
+    opacity: 0.88;
+    line-height: 0.85;
+    user-select: none;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    text-shadow:
+      0 -1px 1px rgba(255,255,255,0.4),
+      0 2px 3px rgba(0,0,0,0.25),
+      0 4px 8px rgba(0,0,0,0.10);
+  }
+
+  .text-date {
+    position: fixed;
+    top: 2.8vh;
+    right: 3.2vw;
+    z-index: 3;
+    font-family: 'IBM Plex Mono', 'SF Mono', 'Menlo', monospace;
+    font-weight: 300;
+    font-size: min(2.535vw, 3.12vh);
+    color: #828282;
+    letter-spacing: -0.06em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  }
+  .text-date:hover {
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body>
+
+<img class="bg-sand" src="sand-bg.png" alt="">
+<canvas id="ascii"></canvas>
+<div class="text-sandbox">sandbox</div>
+<a href="0415.html" class="text-date">[0415]</a>
+
+<script>
+(function() {
+  'use strict';
+
+  const canvas = document.getElementById('ascii');
+  const ctx = canvas.getContext('2d');
+  const srcImg = new Image();
+  srcImg.src = 'ascii-art.png';
+
+  let W, H, dpr;
+
+  function resize() {
+    dpr = window.devicePixelRatio || 1;
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function fract(x) { return x - Math.floor(x); }
+  function hash(a, b) {
+    let x = fract(a * 127.1 + b * 311.7);
+    return fract(Math.sin(x * 43758.5453) + 0.5);
+  }
+  function smoothNoise(x, y) {
+    const ix = Math.floor(x), iy = Math.floor(y);
+    const fx = x - ix, fy = y - iy;
+    const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+    const a = hash(ix, iy), b = hash(ix+1, iy);
+    const c = hash(ix, iy+1), d = hash(ix+1, iy+1);
+    return a + (b-a)*ux + (c-a)*uy + (a-b-c+d)*ux*uy;
+  }
+
+  const RAMP = ' .·:;+=*#@';
+
+  let asciiTex = null;
+  let gridCols = 0, gridRows = 0;
+  let charGrid = null;
+  let texW = 0, texH = 0;
+  let drawWCached = 0, drawHCached = 0;
+
+  function buildAsciiTexture() {
+    const scale = Math.min(W, H);
+    drawWCached = scale * 1.204;
+    drawHCached = (drawWCached / srcImg.naturalWidth) * srcImg.naturalHeight;
+
+    const fontSize = Math.max(4.5, scale * 0.006);
+    const charW = fontSize * 0.6;
+    const charH = fontSize * 0.95;
+
+    gridCols = Math.ceil(drawWCached / charW);
+    gridRows = Math.ceil(drawHCached / charH);
+
+    const sampleW = gridCols * 3;
+    const sampleH = gridRows * 3;
+    const sampler = new OffscreenCanvas(sampleW, sampleH);
+    const sCtx = sampler.getContext('2d', { willReadFrequently: true });
+    sCtx.drawImage(srcImg, 0, 0, sampleW, sampleH);
+    const pixels = sCtx.getImageData(0, 0, sampleW, sampleH).data;
+
+    charGrid = new Uint8Array(gridRows * gridCols);
+
+    for (let gr = 0; gr < gridRows; gr++) {
+      for (let gc = 0; gc < gridCols; gc++) {
+        let totalDark = 0;
+        for (let dy = 0; dy < 3; dy++) {
+          for (let dx = 0; dx < 3; dx++) {
+            const sx = gc * 3 + dx;
+            const sy = gr * 3 + dy;
+            const pi = (sy * sampleW + sx) * 4;
+            const r = pixels[pi], g = pixels[pi+1], b = pixels[pi+2], a = pixels[pi+3];
+            const lum = r * 0.299 + g * 0.587 + b * 0.114;
+            totalDark += (1 - lum / 255) * (a / 255);
+          }
+        }
+        const darkness = totalDark / 9;
+        const i = gr * gridCols + gc;
+
+        if (darkness < 0.015) {
+          charGrid[i] = 0;
+        } else {
+          const boosted = Math.pow(darkness, 0.55);
+          charGrid[i] = 1 + Math.min(Math.floor(boosted * (RAMP.length - 1)), RAMP.length - 2);
+        }
+      }
+    }
+
+    texW = Math.ceil(drawWCached * dpr);
+    texH = Math.ceil(drawHCached * dpr);
+    asciiTex = new OffscreenCanvas(texW, texH);
+    renderGrid(asciiTex, fontSize, charW, charH, 0);
+  }
+
+  function renderGrid(target, fontSize, charW, charH, timeVal) {
+    const tCtx = target.getContext('2d');
+    tCtx.clearRect(0, 0, target.width, target.height);
+    tCtx.scale(dpr, dpr);
+
+    // ASCII characters only
+    tCtx.font = '500 ' + fontSize + 'px "IBM Plex Mono",monospace';
+    tCtx.textBaseline = 'top';
+    tCtx.fillStyle = 'rgba(55,46,32,0.92)';
+
+    for (let r = 0; r < gridRows; r++) {
+      let first = -1, last = -1;
+      for (let c = 0; c < gridCols; c++) {
+        if (charGrid[r * gridCols + c] > 0) {
+          if (first < 0) first = c;
+          last = c;
+        }
+      }
+      if (first < 0) continue;
+
+      let row = '';
+      for (let c = first; c <= last; c++) {
+        let idx = charGrid[r * gridCols + c];
+
+        if (idx > 0 && timeVal > 0) {
+          const shimmer = smoothNoise(c * 0.3 + timeVal * 1.5, r * 0.3 + timeVal * 0.7);
+          if (shimmer > 0.7) idx = Math.min(idx + 1, RAMP.length - 1);
+          else if (shimmer < 0.3) idx = Math.max(idx - 1, 1);
+        }
+
+        row += RAMP[idx];
+      }
+
+      tCtx.fillText(row, first * charW, r * charH);
+    }
+
+    tCtx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  let time = 0;
+  let raf;
+  let frameCount = 0;
+
+  function draw() {
+    time += 0.008;
+    frameCount++;
+
+    if (!asciiTex) {
+      if (srcImg.complete && srcImg.naturalWidth > 0) {
+        resize();
+        buildAsciiTexture();
+      } else {
+        raf = requestAnimationFrame(draw);
+        return;
+      }
+    }
+
+    if (frameCount % 8 === 0) {
+      const scale = Math.min(W, H);
+      const fontSize = Math.max(4.5, scale * 0.006);
+      const charW = fontSize * 0.6;
+      const charH = fontSize * 0.95;
+      renderGrid(asciiTex, fontSize, charW, charH, time);
+    }
+
+    ctx.clearRect(0, 0, W, H);
+
+    const scale = Math.min(W, H);
+    const drawW = scale * 1.204;
+    const drawH = (drawW / srcImg.naturalWidth) * srcImg.naturalHeight;
+    const baseX = -scale * 0.200;
+    const baseY = -scale * 0.0225;
+
+    const pendulum = Math.sin(time * 1.1) * 0.5;
+    const breeze = Math.sin(time * 2.3 + 1.0) * 0.3;
+    const gust = (smoothNoise(time * 0.8, 0.5) - 0.5) * 1.8;
+
+    const lullRaw = smoothNoise(time * 0.12, 20.0);
+    const lull = Math.min(1.0, Math.max(0.0, (lullRaw - 0.25) * 2.0));
+
+    const topAngle = (pendulum + breeze * 1.1 + gust) * 0.014 * lull;
+    const topPivotX = baseX + drawW * 0.13;
+    const topPivotY = baseY + drawH * 0.02;
+
+    const botAngle = (pendulum * 0.85 + breeze * 0.75 + gust * 0.65) * 0.013 * lull;
+    const botPivotX = baseX + drawW * 0.04;
+    const botPivotY = baseY + drawH * 0.38;
+
+    const splitY = drawH * 0.40;
+    const overlap = 20;
+
+    // --- Top leaf ---
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(baseX - 50, baseY - 50, drawW + 100, splitY + 50 + overlap);
+    ctx.clip();
+    ctx.translate(topPivotX, topPivotY);
+    ctx.rotate(topAngle);
+    ctx.translate(-topPivotX, -topPivotY);
+    ctx.drawImage(asciiTex, 0, 0, asciiTex.width, asciiTex.height, baseX, baseY, drawW, drawH);
+    ctx.restore();
+
+    // --- Bottom leaf ---
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(baseX - 50, baseY + splitY - overlap, drawW + 100, drawH - splitY + 50 + overlap);
+    ctx.clip();
+    ctx.translate(botPivotX, botPivotY);
+    ctx.rotate(botAngle);
+    ctx.translate(-botPivotX, -botPivotY);
+    ctx.drawImage(asciiTex, 0, 0, asciiTex.width, asciiTex.height, baseX, baseY, drawW, drawH);
+    ctx.restore();
+
+    raf = requestAnimationFrame(draw);
+  }
+
+  srcImg.onload = function() {
+    resize();
+    buildAsciiTexture();
+    if (!raf) draw();
+  };
+
+  let resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      resize();
+      if (srcImg.complete) buildAsciiTexture();
+    }, 150);
+  });
+
+  resize();
+  if (!raf) draw();
+})();
+</script>
+</body>
+</html>
